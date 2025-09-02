@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌹 Labirinto dell’Amore per Bea 🌹</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Trebuchet MS", sans-serif;
+      background: linear-gradient(135deg, #ffdde1, #ee9ca7);
+      overflow: hidden;
+    }
+
+    h1 {
+      text-align: center;
+      color: #b30059;
+      font-size: 2em;
+      margin: 15px 0;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #fff8f8;
+      border: 5px solid #b30059;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(179, 0, 89, 0.6);
+    }
+
+    #message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 25px 35px;
+      border-radius: 25px;
+      text-align: center;
+      font-size: 1.7em;
+      color: #c2185b;
+      box-shadow: 0 0 25px rgba(200, 24, 91, 0.7);
+      transition: transform 0.8s ease;
+      z-index: 10;
+    }
+
+    #message.show {
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* Cuoricini animati */
+    .heart {
+      position: fixed;
+      top: -20px;
+      font-size: 22px;
+      color: #ff3385;
+      animation: fall linear forwards;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(110vh);
+        opacity: 0;
+      }
+    }
+
+    /* Controlli touch */
+    #controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: 70px 70px 70px;
+      grid-template-rows: 70px 70px;
+      gap: 12px;
+      z-index: 5;
+    }
+
+    .btn {
+      background: #ff6699;
+      border: none;
+      border-radius: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      color: white;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    .btn:active {
+      background: #e6005c;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌸 Il Labirinto dell’Amore per Bea 🌸</h1>
+  <canvas id="gameCanvas" width="420" height="420"></canvas>
+
+  <div id="message">Alla fine del labirinto... trovo sempre te, Bea 💖</div>
+
+  <!-- Controlli touch -->
+  <div id="controls">
+    <div></div>
+    <button class="btn" data-dir="up">⬆️</button>
+    <div></div>
+    <button class="btn" data-dir="left">⬅️</button>
+    <button class="btn" data-dir="down">⬇️</button>
+    <button class="btn" data-dir="right">➡️</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const tileSize = 30;
+    const rows = 14;
+    const cols = 14;
+
+    // 1 = muro, 0 = spazio
+    const maze = [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+      [1,0,1,0,1,0,1,0,1,0,1,1,0,1],
+      [1,0,1,0,0,0,1,0,0,0,0,1,0,1],
+      [1,0,1,1,1,0,1,1,1,1,0,1,0,1],
+      [1,0,0,0,1,0,0,0,0,1,0,1,0,1],
+      [1,1,1,0,1,1,1,1,0,1,0,1,0,1],
+      [1,0,0,0,0,0,0,1,0,0,0,1,0,1],
+      [1,0,1,1,1,1,0,1,1,1,0,1,0,1],
+      [1,0,0,0,0,1,0,0,0,1,0,0,0,1],
+      [1,1,1,1,0,1,1,1,0,1,1,1,0,1],
+      [1,0,0,1,0,0,0,1,0,0,0,1,0,1],
+      [1,0,1,1,1,1,0,1,1,1,0,1,0,0],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    ];
+
+    let player = {x: 1, y: 1};
+    const goal = {x: 13, y: 12}; // uscita
+
+    function drawMaze() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for (let y=0;y<rows;y++) {
+        for (let x=0;x<cols;x++) {
+          if (maze[y][x] === 1) {
+            ctx.fillStyle = "#ffb3d9";
+            ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize);
+          }
+        }
+      }
+
+      // Giocatore (cuore rosa)
+      ctx.font = "22px Arial";
+      ctx.fillText("💖", player.x*tileSize+6, player.y*tileSize+24);
+
+      // Uscita (cuore verde)
+      ctx.font = "22px Arial";
+      ctx.fillText("💚", goal.x*tileSize+6, goal.y*tileSize+24);
+    }
+
+    function move(dx,dy) {
+      const newX = player.x+dx;
+      const newY = player.y+dy;
+      if (maze[newY] && maze[newY][newX] === 0) {
+        player.x=newX;
+        player.y=newY;
+        drawMaze();
+        checkWin();
+      }
+    }
+
+    function checkWin() {
+      if (player.x===goal.x && player.y===goal.y) {
+        document.getElementById("message").classList.add("show");
+        for (let i=0;i<40;i++) createHeart();
+      }
+    }
+
+    document.addEventListener("keydown", e=>{
+      if(e.key==="ArrowUp") move(0,-1);
+      if(e.key==="ArrowDown") move(0,1);
+      if(e.key==="ArrowLeft") move(-1,0);
+      if(e.key==="ArrowRight") move(1,0);
+    });
+
+    // Cuoricini animati
+    function createHeart() {
+      const heart = document.createElement("div");
+      heart.className="heart";
+      heart.innerText="💖";
+      heart.style.left=Math.random()*100+"vw";
+      heart.style.animationDuration=(2+Math.random()*3)+"s";
+      document.body.appendChild(heart);
+      setTimeout(()=>heart.remove(),4000);
+    }
+
+    setInterval(()=>createHeart(), 2500);
+
+    // Controlli touch
+    document.querySelectorAll(".btn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const dir=btn.getAttribute("data-dir");
+        if(dir==="up") move(0,-1);
+        if(dir==="down") move(0,1);
+        if(dir==="left") move(-1,0);
+        if(dir==="right") move(1,0);
+      });
+    });
+
+    drawMaze();
+  </script>
+</body>
+</html>
